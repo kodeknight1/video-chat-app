@@ -22,7 +22,9 @@
       const local = document.getElementById("local");
       const remote = document.getElementById("remote");
 
-      const ws = new WebSocket(location.origin.replace(/^http/, "ws"));
+      // const ws = new WebSocket(location.origin.replace(/^http/, "ws"));
+      const ws = new WebSocket("wss:///video-chat-app-nftr.onrender.com");
+
       navigator.mediaDevices
         .getUserMedia({ video: true, audio: true })
         .then((stream) => {
