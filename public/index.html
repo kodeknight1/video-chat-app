@@ -34,16 +34,37 @@
             stream,
           });
 
+          console.log(
+            "I am",
+            location.hash === "#1" ? "initiator" : "receiver"
+          );
           peer.on("signal", (data) => {
-            ws.send(JSON.stringify(data));
+            console.log("SIGNAL:", data);
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify(data));
+            } else {
+              ws.addEventListener(
+                "open",
+                () => {
+                  ws.send(JSON.stringify(data));
+                },
+                { once: true }
+              );
+            }
           });
 
           ws.onmessage = (msg) => {
+            console.log("GOT SIGNAL:", msg.data);
             const signal = JSON.parse(msg.data);
             peer.signal(signal);
           };
 
+          peer.on("connect", () => {
+            console.log("Peer connection established!");
+          });
+
           peer.on("stream", (remoteStream) => {
+            console.log("Receiving remote stream");
             remote.srcObject = remoteStream;
           });
         });
