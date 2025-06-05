@@ -1,0 +1,52 @@
+<!-- public/index.html -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Minimal WebRTC Chat</title>
+    <style>
+      video {
+        width: 48%;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>WebRTC Video Chat</h1>
+    <p>Open in two tabs, one with <code>#1</code> in the URL.</p>
+    <video id="local" autoplay muted playsinline></video>
+    <video id="remote" autoplay playsinline></video>
+
+    <script src="https://unpkg.com/simple-peer@latest/simplepeer.min.js"></script>
+    <script>
+      const local = document.getElementById("local");
+      const remote = document.getElementById("remote");
+
+      const ws = new WebSocket(location.origin.replace(/^http/, "ws"));
+      navigator.mediaDevices
+        .getUserMedia({ video: true, audio: true })
+        .then((stream) => {
+          local.srcObject = stream;
+
+          const peer = new SimplePeer({
+            initiator: location.hash === "#1",
+            trickle: false,
+            stream,
+          });
+
+          peer.on("signal", (data) => {
+            ws.send(JSON.stringify(data));
+          });
+
+          ws.onmessage = (msg) => {
+            const signal = JSON.parse(msg.data);
+            peer.signal(signal);
+          };
+
+          peer.on("stream", (remoteStream) => {
+            remote.srcObject = remoteStream;
+          });
+        });
+    </script>
+  </body>
+</html>
