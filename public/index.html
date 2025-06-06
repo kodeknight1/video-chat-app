@@ -55,16 +55,16 @@
       const local = document.getElementById("local");
       const remote = document.getElementById("remote");
 
-      // const ws = new WebSocket(location.origin.replace(/^http/, "ws"));
-      const ws = new WebSocket("wss:///video-chat-app-nftr.onrender.com");
-      // const ws = new WebSocket("ws://localhost:3000");
+      const ws = new WebSocket(location.origin.replace(/^http/, "ws"));
+      let peer = null;
+      const signalQueue = [];
 
       navigator.mediaDevices
         .getUserMedia({ video: true, audio: true })
         .then((stream) => {
           local.srcObject = stream;
 
-          const peer = new SimplePeer({
+          peer = new SimplePeer({
             initiator: location.hash === "#1",
             trickle: false,
             stream,
@@ -74,8 +74,10 @@
             "I am",
             location.hash === "#1" ? "initiator" : "receiver"
           );
+
+          // When we generate a signal, send it to the other peer
           peer.on("signal", (data) => {
-            console.log("SIGNAL:", data);
+            // console.log("SIGNAL:", data);
             if (ws.readyState === WebSocket.OPEN) {
               ws.send(JSON.stringify(data));
             } else {
@@ -89,21 +91,47 @@
             }
           });
 
-          ws.onmessage = (msg) => {
-            console.log("GOT SIGNAL:", msg.data);
-            const signal = JSON.parse(msg.data);
-            peer.signal(signal);
-          };
+          // When we get the remote stream
+          peer.on("stream", (remoteStream) => {
+            console.log("Receiving remote stream");
+            remote.srcObject = remoteStream;
+          });
 
           peer.on("connect", () => {
             console.log("Peer connection established!");
           });
 
-          peer.on("stream", (remoteStream) => {
-            console.log("Receiving remote stream");
-            remote.srcObject = remoteStream;
+          peer.on("error", (err) => {
+            console.error("Peer error:", err);
           });
+
+          // Process any queued signals
+          signalQueue.forEach((sig) => {
+            try {
+              peer.signal(sig);
+            } catch (e) {
+              console.error("Error signaling from queue:", e);
+            }
+          });
+          signalQueue.length = 0; // Clear the queue
         });
+
+      // Handle incoming WebSocket messages
+      ws.onmessage = (msg) => {
+        // console.log("GOT SIGNAL:", msg.data);
+        const signal = JSON.parse(msg.data);
+
+        if (peer) {
+          try {
+            peer.signal(signal);
+          } catch (err) {
+            console.error("Signal error:", err);
+          }
+        } else {
+          // Buffer the signal until peer is ready
+          signalQueue.push(signal);
+        }
+      };
     </script>
   </body>
 </html>
