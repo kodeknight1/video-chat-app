@@ -4,18 +4,51 @@
   <head>
     <title>Minimal WebRTC Chat</title>
     <style>
-      video {
-        width: 48%;
-        border: 1px solid #ccc;
-        border-radius: 8px;
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background-color: #000;
+        overflow: hidden;
+      }
+
+      h1,
+      p {
+        display: none;
+      }
+
+      #remote {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        object-fit: cover;
+        background: #000;
+      }
+
+      #local {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 200px;
+        height: 150px;
+        border-radius: 10px;
+        border: 2px solid #fff;
+        background: #000;
+        object-fit: cover;
+        transform: scaleX(-1); /* Mirror the local video */
+        z-index: 10;
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
       }
     </style>
   </head>
   <body>
     <h1>WebRTC Video Chat</h1>
     <p>Open in two tabs, one with <code>#1</code> in the URL.</p>
-    <video id="local" autoplay muted playsinline></video>
-    <video id="remote" autoplay playsinline></video>
+    <div class="video-container">
+      <video id="local" autoplay muted playsinline></video>
+      <video id="remote" autoplay playsinline></video>
+    </div>
 
     <script src="https://unpkg.com/simple-peer@latest/simplepeer.min.js"></script>
     <script>
@@ -24,6 +57,7 @@
 
       // const ws = new WebSocket(location.origin.replace(/^http/, "ws"));
       const ws = new WebSocket("wss:///video-chat-app-nftr.onrender.com");
+      // const ws = new WebSocket("ws://localhost:3000");
 
       navigator.mediaDevices
         .getUserMedia({ video: true, audio: true })
