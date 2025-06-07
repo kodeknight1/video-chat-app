@@ -78,12 +78,16 @@
           // When we generate a signal, send it to the other peer
           peer.on("signal", (data) => {
             // console.log("SIGNAL:", data);
+            console.log("Generating signal");
             if (ws.readyState === WebSocket.OPEN) {
+              console.log("sending on ws ready.");
               ws.send(JSON.stringify(data));
             } else {
+              console.log("Listening to ws open.");
               ws.addEventListener(
                 "open",
                 () => {
+                  console.log("Sending on ws open.");
                   ws.send(JSON.stringify(data));
                 },
                 { once: true }
@@ -107,6 +111,7 @@
 
           // Process any queued signals
           signalQueue.forEach((sig) => {
+            console.log("Signal queue.");
             try {
               peer.signal(sig);
             } catch (e) {
@@ -119,15 +124,18 @@
       // Handle incoming WebSocket messages
       ws.onmessage = (msg) => {
         // console.log("GOT SIGNAL:", msg.data);
+        console.log("WS message.");
         const signal = JSON.parse(msg.data);
 
         if (peer) {
+          console.log("Peer");
           try {
             peer.signal(signal);
           } catch (err) {
             console.error("Signal error:", err);
           }
         } else {
+          console.log("Push to queue.");
           // Buffer the signal until peer is ready
           signalQueue.push(signal);
         }
