@@ -59,7 +59,9 @@
       const params = new URLSearchParams(location.search);
       const room = params.get("room") || "default";
 
-      const ws = new WebSocket(location.origin.replace(/^http/, "ws"));
+      const wsProtocol = location.protocol === "https:" ? "wss:" : "ws:";
+      const ws = new WebSocket(wsProtocol + "//" + location.host);
+
       let peer = null;
       const signalQueue = [];
 
