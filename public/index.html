@@ -55,6 +55,10 @@
       const local = document.getElementById("local");
       const remote = document.getElementById("remote");
 
+      // Get room name from URL like ?room=myroom
+      const params = new URLSearchParams(location.search);
+      const room = params.get("room") || "default";
+
       const ws = new WebSocket(location.origin.replace(/^http/, "ws"));
       let peer = null;
       const signalQueue = [];
@@ -75,27 +79,21 @@
             location.hash === "#1" ? "initiator" : "receiver"
           );
 
-          // When we generate a signal, send it to the other peer
           peer.on("signal", (data) => {
-            // console.log("SIGNAL:", data);
-            console.log("Generating signal");
+            const message = JSON.stringify({ room, data });
             if (ws.readyState === WebSocket.OPEN) {
-              console.log("sending on ws ready.");
-              ws.send(JSON.stringify(data));
+              ws.send(message);
             } else {
-              console.log("Listening to ws open.");
               ws.addEventListener(
                 "open",
                 () => {
-                  console.log("Sending on ws open.");
-                  ws.send(JSON.stringify(data));
+                  ws.send(message);
                 },
                 { once: true }
               );
             }
           });
 
-          // When we get the remote stream
           peer.on("stream", (remoteStream) => {
             console.log("Receiving remote stream");
             remote.srcObject = remoteStream;
@@ -109,34 +107,27 @@
             console.error("Peer error:", err);
           });
 
-          // Process any queued signals
           signalQueue.forEach((sig) => {
-            console.log("Signal queue.");
             try {
               peer.signal(sig);
             } catch (e) {
               console.error("Error signaling from queue:", e);
             }
           });
-          signalQueue.length = 0; // Clear the queue
+          signalQueue.length = 0;
         });
 
-      // Handle incoming WebSocket messages
       ws.onmessage = (msg) => {
-        // console.log("GOT SIGNAL:", msg.data);
-        console.log("WS message.");
-        const signal = JSON.parse(msg.data);
+        const { room: msgRoom, data: signal } = JSON.parse(msg.data);
+        if (msgRoom !== room) return;
 
         if (peer) {
-          console.log("Peer");
           try {
             peer.signal(signal);
           } catch (err) {
             console.error("Signal error:", err);
           }
         } else {
-          console.log("Push to queue.");
-          // Buffer the signal until peer is ready
           signalQueue.push(signal);
         }
       };
