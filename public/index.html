@@ -55,12 +55,12 @@
       const local = document.getElementById("local");
       const remote = document.getElementById("remote");
 
-      // Get room name from URL like ?room=myroom
-      const params = new URLSearchParams(location.search);
-      const room = params.get("room") || "default";
+      const hash = location.hash.slice(1); // e.g., "room1-1"
+      const [room, role] = hash.split("-");
+      const isInitiator = role === "1";
 
-      const wsProtocol = location.protocol === "https:" ? "wss:" : "ws:";
-      const ws = new WebSocket(wsProtocol + "//" + location.host);
+      const protocol = location.protocol === "https:" ? "wss" : "ws";
+      const ws = new WebSocket(`${protocol}://${location.host}/ws/${room}`);
 
       let peer = null;
       const signalQueue = [];
@@ -71,15 +71,12 @@
           local.srcObject = stream;
 
           peer = new SimplePeer({
-            initiator: location.hash === "#1",
+            initiator: isInitiator,
             trickle: false,
             stream,
           });
 
-          console.log(
-            "I am",
-            location.hash === "#1" ? "initiator" : "receiver"
-          );
+          console.log("I am", isInitiator ? "initiator" : "receiver");
 
           peer.on("signal", (data) => {
             const message = JSON.stringify({ room, data });
